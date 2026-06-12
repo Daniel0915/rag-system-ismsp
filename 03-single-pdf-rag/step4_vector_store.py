@@ -2,7 +2,7 @@
 
 import streamlit as st
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from pathlib import Path
 from dotenv import load_dotenv
 

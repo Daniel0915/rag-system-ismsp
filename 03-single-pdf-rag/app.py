@@ -23,7 +23,7 @@ CHROMA_DIR = str(BASE_DIR / "chroma_db")
 
 
 def save_uploadedfile(uploadedfile: UploadedFile) -> str:
-    temp_dir = "PDF_임시폴더"
+    temp_dir = str(BASE_DIR / "PDF_임시폴더")
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
     file_path = os.path.join(temp_dir, uploadedfile.name)

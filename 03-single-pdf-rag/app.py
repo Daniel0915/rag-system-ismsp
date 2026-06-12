@@ -141,9 +141,8 @@ def create_rag_chain(llm, vector_store):
     return rag_chain
 
 
-@st.cache_data
-def process_question(user_question: str, _rag_chain):
-    response = _rag_chain.invoke({"input": user_question})
+def process_question(user_question: str, rag_chain):
+    response = rag_chain.invoke({"input": user_question})
 
     answer = response['answer']
     context_docs = response.get('context', [])

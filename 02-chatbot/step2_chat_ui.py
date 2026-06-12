@@ -2,7 +2,7 @@
 
 import streamlit as st
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -50,6 +50,8 @@ def main():
         for msg in st.session_state.messages:
             if msg["role"] == "user":
                 langchain_messages.append(HumanMessage(content=msg["content"]))
+            elif msg["role"] == "assistant":
+                langchain_messages.append(AIMessage(content=msg["content"]))
 
         with st.chat_message("assistant"):
             with st.spinner("생각 중..."):

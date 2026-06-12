@@ -54,7 +54,8 @@ def save_to_vector_store(chunks, append=False):
             existing = Chroma(
                 persist_directory=CHROMA_DIR,
                 embedding_function=embeddings,
-                collection_name="documents"
+                collection_name="documents",
+                collection_metadata={"hnsw:space": "cosine"}
             )
             existing._collection.delete(where={})
         except Exception:
@@ -64,13 +65,15 @@ def save_to_vector_store(chunks, append=False):
             documents=chunks,
             embedding=embeddings,
             persist_directory=CHROMA_DIR,
-            collection_name="documents"
+            collection_name="documents",
+            collection_metadata={"hnsw:space": "cosine"}
         )
     else:
         vector_store = Chroma(
             persist_directory=CHROMA_DIR,
             embedding_function=embeddings,
-            collection_name="documents"
+            collection_name="documents",
+            collection_metadata={"hnsw:space": "cosine"}
         )
         vector_store.add_documents(chunks)
 

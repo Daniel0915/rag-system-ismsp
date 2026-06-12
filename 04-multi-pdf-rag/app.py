@@ -133,7 +133,8 @@ def main():
                 vector_store = Chroma(
                     persist_directory=CHROMA_DIR,
                     embedding_function=embeddings,
-                    collection_name="documents"
+                    collection_name="documents",
+                    collection_metadata={"hnsw:space": "cosine"}
                 )
                 st.session_state.vector_store = vector_store
                 st.session_state.rag_chain = create_rag_chain(vector_store)

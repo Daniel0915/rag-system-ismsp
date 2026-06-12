@@ -24,7 +24,8 @@ def save_to_vector_store(chunks):
         existing_store = Chroma(
             persist_directory=CHROMA_DIR,
             embedding_function=embeddings,
-            collection_name="documents"
+            collection_name="documents",
+            collection_metadata={"hnsw:space": "cosine"}
         )
         existing_store._collection.delete(where={})
     except Exception:
@@ -34,7 +35,8 @@ def save_to_vector_store(chunks):
         documents=chunks,
         embedding=embeddings,
         persist_directory=CHROMA_DIR,
-        collection_name="documents"
+        collection_name="documents",
+        collection_metadata={"hnsw:space": "cosine"}
     )
     return vector_store
 
@@ -44,7 +46,8 @@ def search_similar(query: str, k: int = 3):
     vector_store = Chroma(
         persist_directory=CHROMA_DIR,
         embedding_function=embeddings,
-        collection_name="documents"
+        collection_name="documents",
+        collection_metadata={"hnsw:space": "cosine"}
     )
     results = vector_store.similarity_search(query, k=k)
     return results

@@ -62,7 +62,8 @@ def save_to_vector_store(chunks):
         existing = Chroma(
             persist_directory=CHROMA_DIR,
             embedding_function=embeddings,
-            collection_name="documents"
+            collection_name="documents",
+            collection_metadata={"hnsw:space": "cosine"}
         )
         existing._collection.delete(where={})
     except Exception:
@@ -72,7 +73,8 @@ def save_to_vector_store(chunks):
         documents=chunks,
         embedding=embeddings,
         persist_directory=CHROMA_DIR,
-        collection_name="documents"
+        collection_name="documents",
+        collection_metadata={"hnsw:space": "cosine"}
     )
     return vector_store
 

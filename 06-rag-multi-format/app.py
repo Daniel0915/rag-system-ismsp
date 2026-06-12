@@ -179,7 +179,8 @@ def save_to_vector_store(chunks, vectorstore):
             documents=chunks,
             embedding=embeddings,
             persist_directory=PERSIST_DIR,
-            collection_name="documents"
+            collection_name="documents",
+            collection_metadata={"hnsw:space": "cosine"}
         )
     else:
         vectorstore.add_documents(chunks)
@@ -280,7 +281,8 @@ def main():
             st.session_state.vectorstore = Chroma(
                 persist_directory=PERSIST_DIR,
                 embedding_function=embeddings,
-                collection_name="documents"
+                collection_name="documents",
+                collection_metadata={"hnsw:space": "cosine"}
             )
             st.session_state.rag_chain = create_rag_chain(st.session_state.vectorstore)
 

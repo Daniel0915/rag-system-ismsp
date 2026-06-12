@@ -53,7 +53,8 @@ def load_pdf_with_metadata(pdf_path, metadata, vectorstore):
         vectorstore = Chroma.from_documents(
             documents=splits,
             embedding=embeddings,
-            persist_directory=CHROMA_DIR
+            persist_directory=CHROMA_DIR,
+            collection_metadata={"hnsw:space": "cosine"}
         )
     else:
         vectorstore.add_documents(splits)
@@ -223,7 +224,8 @@ def main():
                 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
                 st.session_state.vectorstore = Chroma(
                     persist_directory=CHROMA_DIR,
-                    embedding_function=embeddings
+                    embedding_function=embeddings,
+                    collection_metadata={"hnsw:space": "cosine"}
                 )
                 st.session_state.pdfs_loaded = True
 

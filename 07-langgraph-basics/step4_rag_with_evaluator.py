@@ -61,6 +61,7 @@ def get_vectorstore():
     vectorstore = Chroma.from_documents(
         documents=TEST_DOCUMENTS,
         embedding=embeddings,
+        collection_metadata={"hnsw:space": "cosine"},
     )
     return vectorstore
 

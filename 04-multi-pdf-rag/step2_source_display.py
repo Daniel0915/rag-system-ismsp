@@ -23,7 +23,8 @@ def create_rag_chain():
     vector_store = Chroma(
         persist_directory=CHROMA_DIR,
         embedding_function=embeddings,
-        collection_name="documents"
+        collection_name="documents",
+        collection_metadata={"hnsw:space": "cosine"}
     )
 
     llm = ChatOpenAI(model="gpt-5-nano", temperature=1)

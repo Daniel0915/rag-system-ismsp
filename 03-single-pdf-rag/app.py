@@ -58,7 +58,8 @@ def save_to_vector_store(documents: List[Document]) -> None:
         existing_store = Chroma(
             persist_directory=CHROMA_DIR,
             embedding_function=embeddings,
-            collection_name="documents"
+            collection_name="documents",
+            collection_metadata={"hnsw:space": "cosine"}
         )
         existing_store._collection.delete(where={})
     except:
@@ -68,7 +69,8 @@ def save_to_vector_store(documents: List[Document]) -> None:
         documents=documents,
         embedding=embeddings,
         persist_directory=CHROMA_DIR,
-        collection_name="documents"
+        collection_name="documents",
+        collection_metadata={"hnsw:space": "cosine"}
     )
     return vector_store
 
@@ -89,7 +91,8 @@ def initialize_rag_system(
     vector_store = Chroma(
         persist_directory=CHROMA_DIR,
         embedding_function=embeddings,
-        collection_name="documents"
+        collection_name="documents",
+        collection_metadata={"hnsw:space": "cosine"}
     )
 
     rag_chain = create_rag_chain(llm, vector_store)

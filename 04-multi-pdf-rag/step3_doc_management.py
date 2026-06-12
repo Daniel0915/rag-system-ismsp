@@ -25,7 +25,8 @@ def get_vector_store():
     return Chroma(
         persist_directory=CHROMA_DIR,
         embedding_function=get_embeddings(),
-        collection_name="documents"
+        collection_name="documents",
+        collection_metadata={"hnsw:space": "cosine"}
     )
 
 

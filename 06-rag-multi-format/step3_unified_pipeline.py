@@ -7,6 +7,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from pathlib import Path
 import os
+import hashlib
 from dotenv import load_dotenv
 
 from step1_multi_loader import load_pdf, load_csv, load_text, save_uploaded_file
@@ -42,33 +43,64 @@ def load_any_document(file_path: str) -> list:
             )]
 
 
-def chunk_and_store(documents: list):
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    chunks = splitter.split_documents(documents)
+def compute_file_hash(file_path: str) -> str:
+    """파일 내용(바이트)으로 해시 생성 — 변경 감지용 지문"""
+    with open(file_path, "rb") as f:
+        return hashlib.md5(f.read()).hexdigest()
 
+
+def get_vector_store() -> Chroma:
+    """ChromaDB 벡터 저장소 열기 (없으면 새로 생성). delete 없이 재사용 → 누적 가능"""
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-    try:
-        existing = Chroma(
-            persist_directory=CHROMA_DIR,
-            embedding_function=embeddings,
-            collection_name="documents",
-            collection_metadata={"hnsw:space": "cosine"}
-        )
-        # delete(where={})는 ValueError를 내고 아무것도 안 지움 → ID로 전체 삭제
-        ids = existing._collection.get()["ids"]
-        if ids:
-            existing._collection.delete(ids=ids)
-    except Exception:
-        pass
-
-    vector_store = Chroma.from_documents(
-        documents=chunks,
-        embedding=embeddings,
+    return Chroma(
         persist_directory=CHROMA_DIR,
+        embedding_function=embeddings,
         collection_name="documents",
         collection_metadata={"hnsw:space": "cosine"}
     )
-    return vector_store, len(chunks)
+
+
+def find_stored_hash(vector_store: Chroma, filename: str):
+    """저장소에 있는 해당 파일명의 해시를 반환. 없으면 None (= 처음 보는 파일)."""
+    found = vector_store._collection.get(
+        where={"filename": filename},
+        include=["metadatas"],
+        limit=1
+    )
+    metadatas = found.get("metadatas")
+    return metadatas[0].get("file_hash") if metadatas else None
+
+
+def index_file(vector_store: Chroma, file_path: str):
+    """파일 한 개를 신규/변경/중복으로 판별해 저장하고, (상태, 청크수)를 돌려준다.
+
+    - "skipped" : 같은 파일·같은 내용 → 청킹/임베딩 없이 스킵
+    - "updated" : 같은 파일·다른 내용 → 기존 청크 삭제 후 재저장
+    - "new"     : 처음 보는 파일      → 그대로 저장
+    """
+    filename = Path(file_path).name
+    new_hash = compute_file_hash(file_path)
+    stored_hash = find_stored_hash(vector_store, filename)
+
+    if stored_hash == new_hash:
+        return "skipped", 0
+
+    if stored_hash is None:
+        status = "new"
+    else:
+        # 내용이 바뀜 → 그 파일의 기존 청크만 제거 후 재저장
+        vector_store._collection.delete(where={"filename": filename})
+        status = "updated"
+
+    documents = load_any_document(file_path)
+    for doc in documents:
+        doc.metadata["filename"] = filename
+        doc.metadata["file_hash"] = new_hash
+
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    chunks = splitter.split_documents(documents)
+    vector_store.add_documents(chunks)
+    return status, len(chunks)
 
 
 def main():
@@ -89,31 +121,36 @@ def main():
             st.write(f"- **{f.name}** ({ext}) — {f.size:,} bytes")
 
         if st.button("모든 파일 → 통합 벡터DB 저장", type="primary"):
-            all_documents = []
+            vector_store = get_vector_store()
+            result = {"new": [], "updated": [], "skipped": []}
+            total_chunks = 0
 
             for uploaded_file in uploaded_files:
                 file_path = save_uploaded_file(uploaded_file)
-                ext = Path(uploaded_file.name).suffix.lower()
 
                 try:
-                    with st.spinner(f"{uploaded_file.name} 로딩 중..."):
-                        docs = load_any_document(file_path)
-                        all_documents.extend(docs)
-                    st.success(f"{uploaded_file.name} → {len(docs)}개 Document ({ext} 로더)")
+                    with st.spinner(f"{uploaded_file.name} 신규/변경/중복 판별 중..."):
+                        status, n = index_file(vector_store, file_path)
+                    result[status].append(uploaded_file.name)
+                    total_chunks += n
                 except Exception as e:
-                    st.error(f"{uploaded_file.name} 로딩 실패: {e}")
+                    st.error(f"{uploaded_file.name} 처리 실패: {e}")
 
-            with st.spinner("통합 벡터DB에 저장 중..."):
-                vector_store, chunk_count = chunk_and_store(all_documents)
+            if result["new"]:
+                st.success(f"신규 저장 ({len(result['new'])}개): {', '.join(result['new'])}")
+            if result["updated"]:
+                st.warning(f"변경 감지 → 갱신 ({len(result['updated'])}개): {', '.join(result['updated'])}")
+            if result["skipped"]:
+                st.info(f"중복 → 스킵 ({len(result['skipped'])}개): {', '.join(result['skipped'])}")
 
-            st.success(f"총 {len(all_documents)}개 Document → {chunk_count}개 청크 → ChromaDB 저장 완료!")
+            st.success(f"이번에 추가된 청크: {total_chunks}개 / 저장소 총 청크: {vector_store._collection.count()}개")
             st.balloons()
 
             st.subheader("저장된 청크 확인")
             collection = vector_store._collection
-            result = collection.get(include=["documents", "metadatas"], limit=5)
+            stored = collection.get(include=["documents", "metadatas"], limit=5)
 
-            for i, (doc, meta) in enumerate(zip(result["documents"], result["metadatas"])):
+            for i, (doc, meta) in enumerate(zip(stored["documents"], stored["metadatas"])):
                 with st.expander(f"청크 #{i + 1} — {meta.get('filename', '?')} ({meta.get('file_type', '?')})"):
                     st.text(doc[:300])
                     st.json(meta)

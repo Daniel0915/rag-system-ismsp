@@ -6,6 +6,8 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
+import json
+import hashlib
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -26,14 +28,23 @@ def save_uploaded_file(uploaded_file) -> str:
     return file_path
 
 
-def load_pdf_with_metadata(pdf_path: str, metadata: dict) -> list:
+def compute_content_hash(pdf_path: str, metadata: dict) -> str:
+    """파일 내용 + 메타데이터로 해시 생성 — 내용이나 메타데이터가 바뀌면 갱신 대상"""
+    with open(pdf_path, "rb") as f:
+        file_bytes = f.read()
+    meta_bytes = json.dumps(metadata, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    return hashlib.md5(file_bytes + meta_bytes).hexdigest()
+
+
+def load_pdf_with_metadata(pdf_path: str, metadata: dict, content_hash: str) -> list:
     loader = PyMuPDFLoader(pdf_path)
     documents = loader.load()
 
     filename = os.path.basename(pdf_path)
     for doc in documents:
-        doc.metadata["source_file"] = filename
         doc.metadata.update(metadata)
+        doc.metadata["source_file"] = filename
+        doc.metadata["file_hash"] = content_hash
 
     return documents
 
@@ -46,41 +57,52 @@ def chunk_documents(documents, chunk_size=1000, chunk_overlap=200):
     return text_splitter.split_documents(documents)
 
 
-def save_to_vector_store(chunks, append=False):
+def get_vector_store() -> Chroma:
+    """ChromaDB 벡터 저장소 열기 (없으면 새로 생성). delete 없이 재사용 → 누적 가능"""
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    return Chroma(
+        persist_directory=CHROMA_DIR,
+        embedding_function=embeddings,
+        collection_name="documents",
+        collection_metadata={"hnsw:space": "cosine"}
+    )
 
-    if not append:
-        try:
-            existing = Chroma(
-                persist_directory=CHROMA_DIR,
-                embedding_function=embeddings,
-                collection_name="documents",
-                collection_metadata={"hnsw:space": "cosine"}
-            )
-            # delete(where={})는 ValueError를 내고 아무것도 안 지움 → ID로 전체 삭제
-            ids = existing._collection.get()["ids"]
-            if ids:
-                existing._collection.delete(ids=ids)
-        except Exception:
-            pass
 
-        vector_store = Chroma.from_documents(
-            documents=chunks,
-            embedding=embeddings,
-            persist_directory=CHROMA_DIR,
-            collection_name="documents",
-            collection_metadata={"hnsw:space": "cosine"}
-        )
+def find_stored_hash(vector_store: Chroma, filename: str):
+    """저장소에 있는 해당 파일명의 해시를 반환. 없으면 None (= 처음 보는 파일)."""
+    found = vector_store._collection.get(
+        where={"source_file": filename},
+        include=["metadatas"],
+        limit=1
+    )
+    metadatas = found.get("metadatas")
+    return metadatas[0].get("file_hash") if metadatas else None
+
+
+def index_pdf(vector_store: Chroma, pdf_path: str, metadata: dict):
+    """PDF 한 개를 신규/변경/중복으로 판별해 저장하고, (상태, 청크리스트)를 돌려준다.
+
+    - "skipped" : 같은 파일·같은 내용·같은 메타데이터 → 청킹/임베딩 없이 스킵
+    - "updated" : 같은 파일·내용 또는 메타데이터가 다름  → 기존 청크 삭제 후 재저장
+    - "new"     : 처음 보는 파일                         → 그대로 저장
+    """
+    filename = os.path.basename(pdf_path)
+    new_hash = compute_content_hash(pdf_path, metadata)
+    stored_hash = find_stored_hash(vector_store, filename)
+
+    if stored_hash == new_hash:
+        return "skipped", []
+
+    if stored_hash is None:
+        status = "new"
     else:
-        vector_store = Chroma(
-            persist_directory=CHROMA_DIR,
-            embedding_function=embeddings,
-            collection_name="documents",
-            collection_metadata={"hnsw:space": "cosine"}
-        )
-        vector_store.add_documents(chunks)
+        # 내용/메타데이터가 바뀜 → 그 파일의 기존 청크만 제거 후 재저장
+        vector_store._collection.delete(where={"source_file": filename})
+        status = "updated"
 
-    return vector_store
+    chunks = chunk_documents(load_pdf_with_metadata(pdf_path, metadata, new_hash))
+    vector_store.add_documents(chunks)
+    return status, chunks
 
 
 def main():
@@ -115,26 +137,26 @@ def main():
         if st.button("메타데이터와 함께 저장", type="primary"):
             file_path = save_uploaded_file(pdf_file)
 
-            with st.spinner("PDF 로딩 + 메타데이터 추가 중..."):
-                documents = load_pdf_with_metadata(file_path, metadata)
-            st.success(f"{len(documents)}페이지 로드 완료")
+            with st.spinner("신규/변경/중복 판별 후 저장 중..."):
+                vector_store = get_vector_store()
+                status, chunks = index_pdf(vector_store, file_path, metadata)
 
-            with st.spinner("청크 분할 중..."):
-                chunks = chunk_documents(documents)
-            st.success(f"{len(chunks)}개 청크 생성")
+            if status == "new":
+                st.success(f"신규 저장: {len(chunks)}개 청크 생성")
+            elif status == "updated":
+                st.warning(f"변경 감지 → 갱신: {len(chunks)}개 청크로 교체")
+            else:
+                st.info("중복 → 스킵 (이미 동일한 파일·메타데이터)")
 
-            with st.spinner("ChromaDB에 저장 중..."):
-                save_to_vector_store(chunks)
-            st.success("저장 완료!")
+            if chunks:
+                st.subheader("저장된 청크의 메타데이터 확인")
+                for i, chunk in enumerate(chunks[:3]):
+                    with st.expander(f"청크 #{i + 1} 메타데이터"):
+                        st.json(chunk.metadata)
+                        st.text(chunk.page_content[:200] + "...")
 
-            st.subheader("저장된 청크의 메타데이터 확인")
-            for i, chunk in enumerate(chunks[:3]):
-                with st.expander(f"청크 #{i + 1} 메타데이터"):
-                    st.json(chunk.metadata)
-                    st.text(chunk.page_content[:200] + "...")
-
-            if len(chunks) > 3:
-                st.caption(f"... 외 {len(chunks) - 3}개 청크")
+                if len(chunks) > 3:
+                    st.caption(f"... 외 {len(chunks) - 3}개 청크")
 
 
 

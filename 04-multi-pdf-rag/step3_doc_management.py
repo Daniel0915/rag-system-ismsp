@@ -6,6 +6,7 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
+import hashlib
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -49,23 +50,63 @@ def get_stored_files():
         return {}
 
 
+def compute_file_hash(pdf_path: str) -> str:
+    """파일 내용(바이트)으로 해시 생성 — 변경 감지용 지문"""
+    with open(pdf_path, "rb") as f:
+        return hashlib.md5(f.read()).hexdigest()
+
+
+def find_stored_hash(vector_store, filename: str):
+    """저장소에 있는 해당 파일명의 해시를 반환. 없으면 None (= 처음 보는 파일)."""
+    found = vector_store._collection.get(
+        where={"source_file": filename},
+        include=["metadatas"],
+        limit=1
+    )
+    metadatas = found.get("metadatas")
+    return metadatas[0].get("file_hash") if metadatas else None
+
+
 def add_pdf_to_store(pdf_path: str):
+    """PDF 한 개를 신규/변경/중복으로 판별해 저장한다.
+
+    - "skipped" : 같은 파일·같은 내용 → 청킹/임베딩 없이 스킵
+    - "updated" : 같은 파일·다른 내용 → 기존 청크 삭제 후 재저장
+    - "new"     : 처음 보는 파일      → 그대로 저장
+
+    반환: (status, pages, chunks)
+    """
+    filename = os.path.basename(pdf_path)
+    new_hash = compute_file_hash(pdf_path)
+
+    vector_store = get_vector_store()
+    stored_hash = find_stored_hash(vector_store, filename)
+
+    if stored_hash == new_hash:
+        return "skipped", 0, 0
+
+    if stored_hash is None:
+        status = "new"
+    else:
+        # 내용이 바뀜 → 그 파일의 기존 청크만 제거 후 재저장
+        delete_file_from_store(filename)
+        status = "updated"
+
     loader = PyMuPDFLoader(pdf_path)
     documents = loader.load()
-    filename = os.path.basename(pdf_path)
     for doc in documents:
         doc.metadata["source_file"] = filename
         doc.metadata["file_path"] = pdf_path
+        doc.metadata["file_hash"] = new_hash
 
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000, chunk_overlap=200
     )
     chunks = text_splitter.split_documents(documents)
 
-    vector_store = get_vector_store()
     vector_store.add_documents(chunks)
 
-    return len(documents), len(chunks)
+    return status, len(documents), len(chunks)
 
 
 def delete_file_from_store(filename: str):
@@ -145,8 +186,14 @@ def main():
                 f.write(pdf_file.getbuffer())
 
             with st.spinner(f"{pdf_file.name} 추가 중..."):
-                pages, chunks = add_pdf_to_store(file_path)
-            added_messages.append(f"{pdf_file.name}: {pages}페이지 → {chunks}청크")
+                status, pages, chunks = add_pdf_to_store(file_path)
+
+            if status == "skipped":
+                added_messages.append(f"{pdf_file.name}: 중복 → 스킵")
+            elif status == "updated":
+                added_messages.append(f"{pdf_file.name}: 변경 감지 → 갱신 ({chunks}청크)")
+            else:
+                added_messages.append(f"{pdf_file.name}: 신규 {pages}페이지 → {chunks}청크")
 
         st.session_state["flash_message"] = "추가 완료! " + " / ".join(added_messages)
         st.session_state["uploader_key"] += 1

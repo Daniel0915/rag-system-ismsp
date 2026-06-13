@@ -4,6 +4,7 @@ import streamlit as st
 import os
 import re
 import base64
+import hashlib
 import fitz
 from typing import List
 from pathlib import Path
@@ -171,21 +172,71 @@ def load_and_chunk_documents(file_paths, chunk_size=1000, chunk_overlap=200):
     return chunks
 
 
-def save_to_vector_store(chunks, vectorstore):
+def compute_file_hash(file_path):
+    """파일 내용(바이트)으로 해시 생성 — 변경 감지용 지문"""
+    with open(file_path, "rb") as f:
+        return hashlib.md5(f.read()).hexdigest()
+
+
+def get_vector_store():
+    """ChromaDB 저장소 열기 (없으면 생성). delete 없이 재사용 → 누적 가능"""
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    return Chroma(
+        persist_directory=PERSIST_DIR,
+        embedding_function=embeddings,
+        collection_name="documents",
+        collection_metadata={"hnsw:space": "cosine"}
+    )
 
+
+def find_stored_hash(vectorstore, filename):
+    """저장소에 있는 해당 파일명의 해시를 반환. 없으면 None (= 처음 보는 파일)."""
+    found = vectorstore._collection.get(
+        where={"filename": filename},
+        include=["metadatas"],
+        limit=1
+    )
+    metadatas = found.get("metadatas")
+    return metadatas[0].get("file_hash") if metadatas else None
+
+
+def upsert_files(file_paths, vectorstore):
+    """파일명 + 해시로 신규/변경/중복을 구분해 저장한다.
+
+    - 같은 파일·같은 내용 → 스킵 (로딩/청킹/임베딩 생략)
+    - 같은 파일·다른 내용 → 기존 청크 삭제 후 갱신
+    - 처음 보는 파일      → 신규 추가
+
+    반환: (vectorstore, {"new": [...], "updated": [...], "skipped": [...]})
+    """
     if vectorstore is None:
-        vectorstore = Chroma.from_documents(
-            documents=chunks,
-            embedding=embeddings,
-            persist_directory=PERSIST_DIR,
-            collection_name="documents",
-            collection_metadata={"hnsw:space": "cosine"}
-        )
-    else:
-        vectorstore.add_documents(chunks)
+        vectorstore = get_vector_store()
 
-    return vectorstore
+    result = {"new": [], "updated": [], "skipped": []}
+
+    for file_path in file_paths:
+        filename = Path(file_path).name
+        new_hash = compute_file_hash(file_path)
+        stored_hash = find_stored_hash(vectorstore, filename)
+
+        if stored_hash == new_hash:
+            result["skipped"].append(filename)
+            continue
+
+        if stored_hash is None:
+            status = "new"
+        else:
+            vectorstore._collection.delete(where={"filename": filename})
+            status = "updated"
+
+        chunks = load_and_chunk_documents([file_path])
+        for chunk in chunks:
+            chunk.metadata["file_hash"] = new_hash
+        if chunks:
+            vectorstore.add_documents(chunks)
+        result[status].append(filename)
+
+    return vectorstore, result
 
 
 def create_rag_chain(vectorstore):
@@ -322,23 +373,17 @@ def main():
                         f.write(uploaded_file.getvalue())
                     file_paths.append(str(file_path))
 
-                chunks = load_and_chunk_documents(file_paths)
-                if chunks:
-                    st.session_state.vectorstore = save_to_vector_store(
-                        chunks, st.session_state.vectorstore
-                    )
-                    st.session_state.rag_chain = create_rag_chain(st.session_state.vectorstore)
+                st.session_state.vectorstore, sync_result = upsert_files(
+                    file_paths, st.session_state.vectorstore
+                )
+                st.session_state.rag_chain = create_rag_chain(st.session_state.vectorstore)
 
-                    file_results = {}
-                    for chunk in chunks:
-                        filename = chunk.metadata.get('filename', 'unknown')
-                        if filename not in file_results:
-                            file_results[filename] = 0
-                        file_results[filename] += 1
-
-                    success_count = len(file_results)
-                    total_chunks = sum(file_results.values())
-                    st.success(f"{success_count}개 문서가 저장되었습니다! (총 {total_chunks}개 청크)")
+                if sync_result["new"]:
+                    st.success(f"신규 {len(sync_result['new'])}개: {', '.join(sync_result['new'])}")
+                if sync_result["updated"]:
+                    st.warning(f"변경 갱신 {len(sync_result['updated'])}개: {', '.join(sync_result['updated'])}")
+                if sync_result["skipped"]:
+                    st.info(f"중복 스킵 {len(sync_result['skipped'])}개: {', '.join(sync_result['skipped'])}")
 
             with st.spinner("PDF 페이지를 이미지로 변환하는 중입니다..."):
                 for file_path in file_paths:

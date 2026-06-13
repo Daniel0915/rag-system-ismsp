@@ -2,6 +2,8 @@
 
 import os
 import re
+import hashlib
+import json
 import fitz
 import streamlit as st
 from typing import List
@@ -31,35 +33,73 @@ def save_uploaded_file(uploaded_file) -> str:
     return file_path
 
 
-def load_pdf_with_metadata(pdf_path, metadata, vectorstore):
-    loader = PyPDFLoader(pdf_path)
-    documents = loader.load()
+def compute_content_hash(pdf_path, metadata):
+    """파일 내용 + 메타데이터로 해시 생성. 내용이나 메타데이터가 바뀌면 갱신 대상이 된다."""
+    with open(pdf_path, "rb") as f:
+        file_bytes = f.read()
+    meta_bytes = json.dumps(metadata, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    return hashlib.md5(file_bytes + meta_bytes).hexdigest()
+
+
+def get_vector_store():
+    """ChromaDB 저장소 열기 (없으면 생성). delete 없이 재사용 → 누적 가능"""
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    return Chroma(
+        persist_directory=CHROMA_DIR,
+        embedding_function=embeddings,
+        collection_metadata={"hnsw:space": "cosine"}
+    )
+
+
+def find_stored_hash(vectorstore, filename):
+    """저장소에 있는 해당 파일명의 해시를 반환. 없으면 None (= 처음 보는 파일)."""
+    found = vectorstore._collection.get(
+        where={"source_file": filename},
+        include=["metadatas"],
+        limit=1
+    )
+    metadatas = found.get("metadatas")
+    return metadatas[0].get("file_hash") if metadatas else None
+
+
+def upsert_pdf_with_metadata(pdf_path, metadata, vectorstore):
+    """파일명 + (내용+메타데이터) 해시로 신규/변경/중복을 판별해 저장한다.
+
+    - 같은 파일·같은 내용·같은 메타데이터 → 스킵
+    - 같은 파일이지만 내용 또는 메타데이터가 다름 → 기존 청크 삭제 후 갱신
+    - 처음 보는 파일 → 신규
+
+    반환: (vectorstore, status)  status ∈ {"new", "updated", "skipped"}
+    """
+    if vectorstore is None:
+        vectorstore = get_vector_store()
 
     filename = os.path.basename(pdf_path)
+    new_hash = compute_content_hash(pdf_path, metadata)
+    stored_hash = find_stored_hash(vectorstore, filename)
+
+    if stored_hash == new_hash:
+        return vectorstore, "skipped"
+
+    if stored_hash is None:
+        status = "new"
+    else:
+        vectorstore._collection.delete(where={"source_file": filename})
+        status = "updated"
+
+    loader = PyPDFLoader(pdf_path)
+    documents = loader.load()
     for doc in documents:
         doc.metadata.update(metadata)
         doc.metadata["source_file"] = filename
+        doc.metadata["file_hash"] = new_hash
 
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=400,
-        chunk_overlap=80,
-        length_function=len,
-    )
-    splits = text_splitter.split_documents(documents)
+    splits = RecursiveCharacterTextSplitter(
+        chunk_size=400, chunk_overlap=80, length_function=len
+    ).split_documents(documents)
+    vectorstore.add_documents(splits)
 
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-
-    if vectorstore is None:
-        vectorstore = Chroma.from_documents(
-            documents=splits,
-            embedding=embeddings,
-            persist_directory=CHROMA_DIR,
-            collection_metadata={"hnsw:space": "cosine"}
-        )
-    else:
-        vectorstore.add_documents(splits)
-
-    return vectorstore
+    return vectorstore, status
 
 
 def create_filtered_rag_chain(vectorstore, filter_metadata=None):
@@ -200,20 +240,28 @@ def main():
 
             with st.spinner("문서를 저장하고 있습니다..."):
                 file_path = save_uploaded_file(uploaded_file)
-                st.session_state.vectorstore = load_pdf_with_metadata(
+                st.session_state.vectorstore, status = upsert_pdf_with_metadata(
                     pdf_path=file_path,
                     metadata=metadata,
                     vectorstore=st.session_state.vectorstore
                 )
                 st.session_state.pdfs_loaded = True
-                st.session_state.uploaded_files_list.append((uploaded_file.name, metadata))
 
+                # 저장소 실제 내용으로 doc_info 갱신 (중복 업로드해도 파일 수가 안 부풀려짐)
+                metas = st.session_state.vectorstore._collection.get(include=["metadatas"]).get("metadatas", [])
+                files = sorted({m.get("source_file", "Unknown") for m in metas})
                 st.session_state.doc_info = {
-                    'files': [f[0] for f in st.session_state.uploaded_files_list],
-                    'count': len(st.session_state.uploaded_files_list),
+                    'files': files,
+                    'count': len(files),
                     'chunks': st.session_state.vectorstore._collection.count()
                 }
-                st.success(f"{uploaded_file.name} 이(가) 저장되었습니다!")
+
+            if status == "new":
+                st.success(f"신규 저장: {uploaded_file.name}")
+            elif status == "updated":
+                st.warning(f"변경 감지 → 갱신: {uploaded_file.name}")
+            else:
+                st.info(f"중복 → 스킵 (이미 동일): {uploaded_file.name}")
 
             with st.spinner("PDF 페이지를 이미지로 변환하는 중입니다..."):
                 images = convert_pdf_to_images(file_path)

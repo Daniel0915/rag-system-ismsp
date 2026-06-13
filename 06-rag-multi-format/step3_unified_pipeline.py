@@ -54,7 +54,10 @@ def chunk_and_store(documents: list):
             collection_name="documents",
             collection_metadata={"hnsw:space": "cosine"}
         )
-        existing._collection.delete(where={})
+        # delete(where={})는 ValueError를 내고 아무것도 안 지움 → ID로 전체 삭제
+        ids = existing._collection.get()["ids"]
+        if ids:
+            existing._collection.delete(ids=ids)
     except Exception:
         pass
 

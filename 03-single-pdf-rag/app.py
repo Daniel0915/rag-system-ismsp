@@ -61,8 +61,11 @@ def save_to_vector_store(documents: List[Document]) -> None:
             collection_name="documents",
             collection_metadata={"hnsw:space": "cosine"}
         )
-        existing_store._collection.delete(where={})
-    except:
+        # delete(where={})는 ValueError를 내고 아무것도 안 지움 → ID로 전체 삭제
+        ids = existing_store._collection.get()["ids"]
+        if ids:
+            existing_store._collection.delete(ids=ids)
+    except Exception:
         pass
 
     vector_store = Chroma.from_documents(

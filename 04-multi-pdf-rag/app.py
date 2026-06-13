@@ -12,7 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_classic.chains import create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from dotenv import load_dotenv
-from step1_multi_load import save_uploaded_files, load_multiple_pdfs, chunk_documents, save_to_vector_store, CHROMA_DIR
+from step1_multi_load import save_uploaded_files, sync_pdfs_to_vector_store, CHROMA_DIR
 
 # 환경변수 로드
 env_path = Path(__file__).parent.parent / ".env"
@@ -104,22 +104,29 @@ def main():
         if pdf_docs and upload_button:
             with st.spinner("PDF 문서를 저장하고 있습니다..."):
                 pdf_paths = save_uploaded_files(pdf_docs)
-                all_docs = load_multiple_pdfs(pdf_paths)
-                chunks = chunk_documents(all_docs)
-                vector_store = save_to_vector_store(chunks)
+                vector_store, sync_result = sync_pdfs_to_vector_store(pdf_paths)
 
                 st.session_state.vector_store = vector_store
                 st.session_state.rag_chain = create_rag_chain(vector_store)
                 st.session_state.pdfs_loaded = True
 
-                total_size = sum(f.size for f in pdf_docs)
+                # 저장소에 실제로 들어있는 전체 파일 목록으로 갱신 (누적 반영)
+                all_metas = vector_store._collection.get(include=["metadatas"]).get("metadatas", [])
+                stored_files = sorted({m.get("source_file", "Unknown") for m in all_metas})
                 st.session_state.doc_info = {
-                    'files': [f.name for f in pdf_docs],
-                    'count': len(pdf_docs),
-                    'size': f"{total_size / 1024 / 1024:.2f} MB",
+                    'files': stored_files,
+                    'count': len(stored_files),
+                    'size': 'N/A',
                     'chunks': vector_store._collection.count()
                 }
-                st.success(f"{len(pdf_docs)}개 PDF 문서가 저장되었습니다!")
+
+            # 신규/변경/중복 처리 결과 안내
+            if sync_result["new"]:
+                st.success(f"신규 {len(sync_result['new'])}개: {', '.join(sync_result['new'])}")
+            if sync_result["updated"]:
+                st.warning(f"변경 갱신 {len(sync_result['updated'])}개: {', '.join(sync_result['updated'])}")
+            if sync_result["skipped"]:
+                st.info(f"중복 스킵 {len(sync_result['skipped'])}개: {', '.join(sync_result['skipped'])}")
 
             with st.spinner("PDF 페이지를 이미지로 변환하는 중입니다..."):
                 for pdf_path in pdf_paths:

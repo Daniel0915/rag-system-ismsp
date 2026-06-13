@@ -9,7 +9,7 @@ import fitz
 from typing import List
 from pathlib import Path
 from langchain_community.document_loaders import (
-    PyPDFLoader, TextLoader, CSVLoader,
+    PyMuPDFLoader, TextLoader, CSVLoader,
     UnstructuredWordDocumentLoader, UnstructuredPowerPointLoader, UnstructuredMarkdownLoader
 )
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -49,7 +49,7 @@ def load_single_file(file_path):
         return load_image(file_path)
 
     loaders = {
-        '.pdf': lambda: PyPDFLoader(file_path),
+        '.pdf': lambda: PyMuPDFLoader(file_path),
         '.csv': lambda: CSVLoader(file_path),
         '.md': lambda: UnstructuredMarkdownLoader(file_path),
         '.markdown': lambda: UnstructuredMarkdownLoader(file_path),

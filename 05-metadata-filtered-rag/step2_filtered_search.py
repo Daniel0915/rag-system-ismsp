@@ -38,7 +38,7 @@ def search_with_filter(query: str, filter_dict: dict = None, k: int = 4):
 
 def create_filtered_rag_chain(filter_dict: dict = None):
     vector_store = get_vector_store()
-    llm = ChatOpenAI(model="gpt-5-nano", temperature=1)
+    llm = ChatOpenAI(model="gpt-5-nano")
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", """당신은 문서 기반 질문응답 AI 어시스턴트입니다.

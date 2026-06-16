@@ -13,7 +13,7 @@ load_dotenv(dotenv_path=env_path)
 
 
 def ask_ai(question: str) -> str:
-    llm = ChatOpenAI(model="gpt-5-nano", temperature=1)
+    llm = ChatOpenAI(model="gpt-5-nano")
     messages = [
         SystemMessage(content="당신은 친절한 AI 도우미입니다. 한국어로 간결하게 답변하세요."),
         HumanMessage(content=question)

@@ -12,7 +12,7 @@ load_dotenv(dotenv_path=env_path)
 
 
 def get_ai_response(messages: list) -> str:
-    llm = ChatOpenAI(model="gpt-5-nano", temperature=1)
+    llm = ChatOpenAI(model="gpt-5-nano")
     response = llm.invoke(messages)
     return response.content
 

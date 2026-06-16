@@ -49,7 +49,7 @@ PERSONAS = {
 
 
 def get_chat_response(system_prompt: str, chat_history: list) -> str:
-    llm = ChatOpenAI(model="gpt-5-nano", temperature=1)
+    llm = ChatOpenAI(model="gpt-5-nano")
 
     messages = [SystemMessage(content=system_prompt)]
     for msg in chat_history:

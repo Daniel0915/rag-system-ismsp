@@ -17,12 +17,11 @@ client = OpenAI()
 def call_with_role(user_message: str, system_prompt: str) -> str:
     """역할이 부여된 AI에게 질문하는 함수"""
     response = client.chat.completions.create(
-        model="gpt-4.1-nano",
+        model="gpt-5-nano",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
-        ],
-        temperature=0.7
+        ]
     )
     return response.choices[0].message.content
 

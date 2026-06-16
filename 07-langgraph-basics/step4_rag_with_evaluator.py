@@ -78,7 +78,7 @@ class State(TypedDict):
 
 
 def rewrite_query(state: State) -> dict:
-    llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0)
+    llm = ChatOpenAI(model="gpt-5-nano")
     iteration = state.get("iteration", 0) + 1
 
     if iteration == 1:
@@ -115,7 +115,7 @@ def retrieve(state: State) -> dict:
 
 
 def generate(state: State) -> dict:
-    llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0.3)
+    llm = ChatOpenAI(model="gpt-5-nano")
 
     unique_context = list(dict.fromkeys(state["all_context"]))
     context_text = "\n\n".join(
@@ -132,7 +132,7 @@ def generate(state: State) -> dict:
 
 
 def evaluate(state: State) -> dict:
-    llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0)
+    llm = ChatOpenAI(model="gpt-5-nano")
 
     response = llm.invoke(
         f"당신은 답변 품질 평가자입니다.\n"

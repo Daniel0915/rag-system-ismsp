@@ -21,7 +21,7 @@ def create_summary_chain():
         ("system", "당신은 요약 전문가입니다. 주어진 텍스트를 {length}줄로 요약하세요."),
         ("human", "{text}")
     ])
-    model = ChatOpenAI(model="gpt-4.1-nano", temperature=0)
+    model = ChatOpenAI(model="gpt-5-nano")
     parser = StrOutputParser()
 
     # LCEL 파이프: prompt → model → parser

@@ -15,12 +15,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def call_with_langchain(user_message: str, temperature: float = 0.7) -> str:
+def call_with_langchain(user_message: str) -> str:
     """LangChain ChatOpenAI로 LLM 호출"""
-    llm = ChatOpenAI(
-        model="gpt-4.1-nano",
-        temperature=temperature
-    )
+    llm = ChatOpenAI(model="gpt-5-nano")
 
     messages = [
         SystemMessage(content="당신은 친절한 AI 도우미입니다. 한국어로 답변하세요."),

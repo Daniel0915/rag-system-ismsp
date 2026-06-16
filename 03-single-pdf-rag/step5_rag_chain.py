@@ -28,7 +28,7 @@ def create_rag_chain():
         collection_metadata={"hnsw:space": "cosine"}
     )
 
-    llm = ChatOpenAI(model="gpt-5-nano", temperature=1)
+    llm = ChatOpenAI(model="gpt-5-nano")
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", """당신은 문서 기반 질문응답 AI 어시스턴트입니다.

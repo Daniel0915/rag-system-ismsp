@@ -82,7 +82,7 @@ def load_image(image_path):
         }
         mime_type = mime_map.get(ext, 'image/png')
 
-        vision_llm = ChatOpenAI(model="gpt-5-nano", temperature=1)
+        vision_llm = ChatOpenAI(model="gpt-5.4-mini")
         message = HumanMessage(content=[
             {"type": "text", "text": (
                 "이 이미지의 내용을 상세하게 한국어로 설명해주세요. "
@@ -251,7 +251,7 @@ def create_rag_chain(vectorstore):
 질문: {input}""")
     ])
 
-    llm = ChatOpenAI(model="gpt-5-nano", temperature=1)
+    llm = ChatOpenAI(model="gpt-5-nano")
     document_chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
     return create_retrieval_chain(retriever=retriever, combine_docs_chain=document_chain)
@@ -433,6 +433,7 @@ def main():
         st.markdown("---")
         st.markdown("### 모델 정보")
         st.markdown("- **LLM:** gpt-5-nano")
+        st.markdown("- **Vision:** gpt-5.4-mini")
         st.markdown("- **Embedding:** text-embedding-3-small")
         st.markdown("---")
         st.markdown("### 사용 방법")

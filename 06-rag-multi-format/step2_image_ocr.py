@@ -38,7 +38,7 @@ def extract_text_from_image(image_path: str) -> str:
     image_b64 = image_to_base64(image_path)
     mime_type = get_mime_type(image_path)
 
-    vision_llm = ChatOpenAI(model="gpt-4.1-nano", temperature=1)
+    vision_llm = ChatOpenAI(model="gpt-5.4-mini")
 
     message = HumanMessage(content=[
         {

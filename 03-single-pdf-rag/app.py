@@ -87,8 +87,7 @@ def initialize_rag_system(
     )
 
     llm = ChatOpenAI(
-        model=model_name,
-        temperature=1
+        model=model_name
     )
 
     vector_store = Chroma(

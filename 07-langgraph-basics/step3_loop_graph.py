@@ -23,7 +23,7 @@ class State(TypedDict):
 
 
 def write_draft(state: State) -> dict:
-    llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0.7)
+    llm = ChatOpenAI(model="gpt-5-nano")
 
     iteration = state.get("iteration", 0) + 1
 
@@ -46,7 +46,7 @@ def write_draft(state: State) -> dict:
 
 
 def evaluate_draft(state: State) -> dict:
-    llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0)
+    llm = ChatOpenAI(model="gpt-5-nano")
 
     response = llm.invoke(
         f"당신은 글쓰기 평가 전문가입니다. 다음 글을 평가하세요.\n\n"

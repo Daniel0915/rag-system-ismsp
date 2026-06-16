@@ -26,12 +26,11 @@ def call_json_output(user_message: str) -> str:
     "category": "카테고리"
 }"""
     response = client.chat.completions.create(
-        model="gpt-4.1-nano",
+        model="gpt-5-nano",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
-        ],
-        temperature=0
+        ]
     )
     return response.choices[0].message.content
 

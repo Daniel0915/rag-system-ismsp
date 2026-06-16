@@ -130,7 +130,7 @@ def create_filtered_rag_chain(vectorstore, filter_metadata=None):
     if filter_metadata:
         search_kwargs["filter"] = filter_metadata
 
-    llm = ChatOpenAI(model="gpt-5-nano", temperature=1)
+    llm = ChatOpenAI(model="gpt-5-nano")
 
     return RetrievalQA.from_chain_type(
         llm=llm,

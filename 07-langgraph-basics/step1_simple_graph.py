@@ -19,7 +19,7 @@ class State(TypedDict):
 
 
 def analyze_question(state: State) -> dict:
-    llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0)
+    llm = ChatOpenAI(model="gpt-5-nano")
     response = llm.invoke(
         f"다음 질문을 한 줄로 분석해주세요. 어떤 종류의 질문인지, 핵심이 뭔지만 간단히:\n\n{state['question']}"
     )
@@ -27,7 +27,7 @@ def analyze_question(state: State) -> dict:
 
 
 def generate_answer(state: State) -> dict:
-    llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0.7)
+    llm = ChatOpenAI(model="gpt-5-nano")
     response = llm.invoke(
         f"질문: {state['question']}\n"
         f"질문 분석: {state['analysis']}\n\n"

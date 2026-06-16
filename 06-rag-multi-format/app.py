@@ -3,6 +3,7 @@
 import streamlit as st
 import os
 import re
+import json
 import base64
 import hashlib
 import fitz
@@ -82,13 +83,17 @@ def load_image(image_path):
         }
         mime_type = mime_map.get(ext, 'image/png')
 
-        vision_llm = ChatOpenAI(model="gpt-5.4-mini")
+        vision_llm = ChatOpenAI(
+            model="gpt-5.4-mini",
+            model_kwargs={"response_format": {"type": "json_object"}}  # 항상 유효한 JSON 강제
+        )
         message = HumanMessage(content=[
             {"type": "text", "text": (
-                "이 이미지의 내용을 상세하게 한국어로 설명해주세요. "
-                "텍스트가 있다면 모두 추출하고, 표/차트/그래프가 있다면 내용을 설명하고, "
-                "사진이라면 무엇이 보이는지 설명해주세요. "
-                "가능한 모든 정보를 빠짐없이 포함해주세요."
+                "이 이미지를 분석해 아래 JSON 형식으로 답하세요.\n"
+                '{\n'
+                '  "extracted_text": "이미지에서 읽을 수 있는 모든 글자를 위에서 아래 순서로 원문 그대로. 묘사·군말 없이. 글자가 없으면 빈 문자열",\n'
+                '  "description": "배경·표·도장·사진 등 시각적 특징을 한국어로 간단히 설명"\n'
+                '}'
             )},
             {"type": "image_url", "image_url": {
                 "url": f"data:{mime_type};base64,{image_data}"
@@ -96,10 +101,15 @@ def load_image(image_path):
         ])
 
         response = vision_llm.invoke([message])
-        content = response.content
+        data = json.loads(response.content)              # JSON 모드라 바로 파싱
+        extracted = data.get("extracted_text", "")
+        description = data.get("description", "")
+
+        # 청킹·임베딩 대상은 추출 텍스트만. 글자 없는 사진이면 설명으로 대체.
+        body = extracted or description
 
         return [Document(
-            page_content=f"[이미지: {path.name}]\n{content}",
+            page_content=body,  # 파일명은 metadata로 — 본문엔 추출 텍스트만
             metadata={
                 'filename': path.name,
                 'file_type': ext,

@@ -4,11 +4,9 @@ import streamlit as st
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from dotenv import load_dotenv
-from pathlib import Path
 
 # 환경변수 로드
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+load_dotenv()
 
 PERSONAS = {
     "친절한 요리사": {

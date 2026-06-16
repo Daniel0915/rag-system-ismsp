@@ -15,8 +15,7 @@ from dotenv import load_dotenv
 from step1_multi_load import save_uploaded_files, sync_pdfs_to_vector_store, CHROMA_DIR
 
 # 환경변수 로드
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+load_dotenv()
 
 
 def create_rag_chain(vector_store):

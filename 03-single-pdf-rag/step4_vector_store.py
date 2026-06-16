@@ -10,8 +10,7 @@ from step1_load_pdf import save_uploadedfile, load_pdf
 from step2_chunking import chunk_documents
 
 # 환경변수 로드
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 CHROMA_DIR = str(BASE_DIR / "chroma_db")

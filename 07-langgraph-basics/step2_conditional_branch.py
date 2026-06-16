@@ -4,12 +4,10 @@ import streamlit as st
 from typing import TypedDict
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
-from pathlib import Path
 from dotenv import load_dotenv
 
 # 환경변수 로드
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+load_dotenv()
 
 
 class State(TypedDict):

@@ -2,14 +2,12 @@
 
 import streamlit as st
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from pathlib import Path
 from dotenv import load_dotenv
 
 from step1_load_pdf import save_uploadedfile, load_pdf
 
 # 환경변수 로드
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+load_dotenv()
 
 
 def chunk_documents(documents, chunk_size=1000, chunk_overlap=200):

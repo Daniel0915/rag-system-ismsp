@@ -102,7 +102,7 @@ def rewrite_query(state: State) -> dict:
 
 def retrieve(state: State) -> dict:
     vectorstore = get_vectorstore()
-    docs = vectorstore.similarity_search(state["search_query"], k=3)
+    docs = vectorstore.similarity_search(state["search_query"], k=2)
 
     new_chunks = []
     for doc in docs:

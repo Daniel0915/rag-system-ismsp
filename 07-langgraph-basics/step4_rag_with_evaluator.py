@@ -115,7 +115,9 @@ def retrieve(state: State) -> dict:
 def generate(state: State) -> dict:
     llm = ChatOpenAI(model="gpt-5-nano")
 
+    # 중복 제거 후 순서 유지 (재검색을 반복할 때 같은 문서가 여러 번 나올 수 있음)
     unique_context = list(dict.fromkeys(state["all_context"]))
+
     context_text = "\n\n".join(
         f"[문서 {i}] {chunk}" for i, chunk in enumerate(unique_context, 1)
     )
@@ -190,39 +192,20 @@ def build_graph():
     return graph.compile()
 
 
-def run_graph_with_history(question: str, max_iterations: int) -> list[dict]:
+def run_graph(question: str, max_iterations: int) -> dict:
+    """그래프를 끝까지 실행하고 최종 State를 반환한다.
+
+    app.invoke(...)는 START부터 END까지 그래프를 모두 돌린 뒤 '최종 State'를 돌려준다.
+    (중간 과정을 단계별로 보려면 app.stream(...)을 쓰지만, 여기서는
+     LangGraph 흐름과 최종 결과만 확인하면 되므로 invoke로 충분하다.)
+    """
     app = build_graph()
-    iterations = []
-    current = {}
-    total_context = []
-
-    for event in app.stream(
-        {"question": question, "iteration": 0, "max_iterations": max_iterations,
-         "all_context": []},
-        stream_mode="updates",
-    ):
-        for node_name, updates in event.items():
-            if node_name == "rewrite_query":
-                if current:
-                    iterations.append(current)
-                current = {
-                    "iteration": updates.get("iteration", len(iterations) + 1),
-                    "search_query": updates.get("search_query", ""),
-                }
-            elif node_name == "retrieve":
-                current["new_chunks"] = updates.get("all_context", [])
-                total_context.extend(updates.get("all_context", []))
-                current["total_context_count"] = len(set(total_context))
-            elif node_name == "generate":
-                current["answer"] = updates.get("answer", "")
-            elif node_name == "evaluate":
-                current["is_complete"] = updates.get("is_complete")
-                current["evaluation_reason"] = updates.get("evaluation_reason", "")
-
-    if current:
-        iterations.append(current)
-
-    return iterations
+    return app.invoke({
+        "question": question,
+        "iteration": 0,
+        "max_iterations": max_iterations,
+        "all_context": [],
+    })
 
 
 def main():
@@ -249,49 +232,25 @@ def main():
 
     if question and st.button("RAG 실행", type="primary"):
         with st.spinner("RAG + 평가 루프 실행 중..."):
-            history = run_graph_with_history(question, max_iterations)
+            result = run_graph(question, max_iterations)
 
-        if not history:
-            st.warning("결과가 없습니다.")
-            return
-
-        st.subheader("검색 이력")
-        for item in history:
-            iteration = item.get("iteration", "?")
-            is_complete = item.get("is_complete")
-            reason = item.get("evaluation_reason", "")
-
-            label = f"반복 {iteration}: 검색 쿼리 = \"{item.get('search_query', '')}\""
-            if is_complete is not None:
-                label += " 완전" if is_complete else " 재검색 필요"
-
-            with st.expander(label, expanded=(item == history[-1])):
-                st.markdown(f"**검색 쿼리:** {item.get('search_query', '')}")
-
-                new_chunks = item.get("new_chunks", [])
-                st.markdown(f"**이번 검색 결과:** {len(new_chunks)}건")
-                for chunk in new_chunks:
-                    st.text(chunk)
-
-                total_count = item.get("total_context_count", 0)
-                st.markdown(f"**누적 고유 문서:** {total_count}건 (Annotated로 자동 누적)")
-
-                if item.get("answer"):
-                    st.markdown("**생성된 답변:**")
-                    st.write(item["answer"])
-
-                if is_complete is not None:
-                    status = "완전" if is_complete else "불완전"
-                    st.markdown(f"**평가:** {status}")
-                    st.markdown(f"**사유:** {reason}")
+        st.subheader("최종 답변")
+        st.success(result.get("answer", ""))
 
         st.divider()
-        st.subheader("최종 답변")
-        last = history[-1]
-        st.success(last.get("answer", ""))
+        st.subheader("실행 정보")
+        st.markdown(f"**총 검색 횟수:** {result.get('iteration', 0)}회 (재검색 루프)")
+        st.markdown(f"**마지막 검색 쿼리:** {result.get('search_query', '')}")
 
-        total = len(history)
-        st.caption(f"총 {total}회 검색 수행")
+        is_complete = result.get("is_complete")
+        st.markdown(f"**평가 결과:** {'완전' if is_complete else '불완전'}")
+        st.markdown(f"**평가 사유:** {result.get('evaluation_reason', '')}")
+
+        # all_context는 Annotated[operator.add]로 누적되므로 중복 제거 후 표시
+        unique_context = list(dict.fromkeys(result.get("all_context", [])))
+        with st.expander(f"검색된 문서 ({len(unique_context)}건)"):
+            for chunk in unique_context:
+                st.text(chunk)
 
 
 

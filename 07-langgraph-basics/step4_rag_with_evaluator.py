@@ -50,6 +50,20 @@ TEST_DOCUMENTS = [
                      "Dell XPS 등이 주요 브랜드로 경쟁하고 있습니다.",
         metadata={"source": "laptop_market.txt"},
     ),
+    # --- 재검색 루프 시연용 가상 2-hop 데이터 ---
+    # 다리(bridge) 문서: 제품 '노바코어' → 회사 '큐브릭스'만 알려줌 (매출 정보 없음)
+    Document(
+        page_content="큐브릭스(Qubrix)는 노바코어(NovaCore) AI 가속 프로세서를 개발한 "
+                     "대한민국의 반도체 스타트업입니다. 2017년에 설립되었으며 본사는 "
+                     "경기도 성남시 판교에 있습니다.",
+        metadata={"source": "qubrix_overview.txt"},
+    ),
+    # 정답 문서: 회사 '큐브릭스'의 매출만 있음 ('노바코어'라는 단어는 일부러 없음)
+    Document(
+        page_content="큐브릭스의 2024년 연간 매출액은 약 1조 2천억 원으로, 전년 대비 35% 성장했습니다. "
+                     "매출의 대부분은 데이터센터향 칩 판매에서 발생했습니다.",
+        metadata={"source": "qubrix_financials.txt"},
+    ),
 ]
 
 
@@ -226,9 +240,9 @@ def main():
 
     question = st.text_input(
         "질문을 입력하세요",
-        placeholder="예: 맥북 만든 회사 매출액 알려줘",
+        placeholder="예: 노바코어 프로세서를 만든 회사의 2024년 매출액은?",
     )
-    max_iterations = st.slider("최대 검색 반복 횟수", min_value=1, max_value=5, value=3)
+    max_iterations = st.slider("최대 검색 반복 횟수", min_value=1, max_value=5, value=5)
 
     if question and st.button("RAG 실행", type="primary"):
         with st.spinner("RAG + 평가 루프 실행 중..."):

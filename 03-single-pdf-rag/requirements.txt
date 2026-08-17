@@ -1,9 +1,0 @@
-streamlit
-langchain
-langchain-openai
-langchain-community
-langchain-classic
-langchain-text-splitters
-chromadb
-pymupdf
-python-dotenv

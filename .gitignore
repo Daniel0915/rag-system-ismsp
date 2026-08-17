@@ -1,31 +1,7 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
+# Node
+node_modules/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual Environment
-venv/
-ENV/
-env/
-.venv
+*.log
 
 # IDE
 .vscode/
@@ -42,27 +18,8 @@ Thumbs.db
 .env
 .env.local
 
-# Logs
-*.log
-
-# Database
-*.db
-*.sqlite
-
-# Node
-node_modules/
-
-# Vector DB
-chroma_db/
-faiss_index/
-
-# TypeScript version runtime data
-ts-version/data/
-
-# Temporary files
-PDF_임시폴더/
-PDF_이미지/
-temp_pdfs/
+# Runtime data (vector store, PDF page cache, uploads)
+data/
 
 # Claude settings
 .claude/settings.local.json

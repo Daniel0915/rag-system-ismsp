@@ -36,7 +36,7 @@ app.use(
 app.use(express.static(path.join(__dirname, "..", "public")));
 // Serve rasterized PDF page images and the shared /samples corpus for the RAG modules.
 app.use("/data/pdf-pages", express.static(path.resolve(process.cwd(), "data", "pdf-pages")));
-app.use("/samples", express.static(path.resolve(process.cwd(), "..", "samples")));
+app.use("/samples", express.static(path.resolve(process.cwd(), "samples")));
 
 app.use("/api/00-openai-basics", module00Router);
 app.use("/api/01-langchain-basics", module01Router);

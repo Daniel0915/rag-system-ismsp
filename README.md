@@ -1,8 +1,8 @@
 # RAG 시스템 (TypeScript + Gemini/Ollama)
 
-원래 Python/LangChain/OpenAI/Streamlit으로 만들어졌던 RAG 학습 커리큘럼(00~07)을 **TypeScript + Express**로 새로 만든 버전입니다. LLM은 **Google Gemini(클라우드)** 또는 **Ollama(로컬, 예: Qwen)** 중 하나를 환경변수 하나로 선택할 수 있습니다. (Python 버전은 더 이상 이 저장소에 없습니다 — TypeScript가 메인입니다.)
+Java/Spring 백엔드 개발자로 일하며 RAG·AI Agent 개발 역량을 실전으로 쌓기 위해 시작한 프로젝트입니다. LLM은 **Google Gemini(클라우드)** 또는 **Ollama(로컬, 예: Qwen)** 중 하나를 환경변수 하나로 선택할 수 있습니다.
 
-이 커리큘럼 위에, **ISMS-P(정보보호 및 개인정보보호 관리체계) 인증 준비를 자동화하는 챗봇**을 실제 제품 방향으로 확장하는 작업을 진행 중입니다. 자세한 내용은 [사용 예시](#사용-예시) / [ISMS-P 인증 자동화 확장 (진행 중)](#isms-p-인증-자동화-확장-진행-중) 참고.
+목표는 **영세 기업이 외부 컨설팅 없이 ISMS-P 인증심사를 준비할 수 있도록 돕는 자동화 챗봇**을 만드는 것입니다. 자세한 내용은 [사용 예시](#사용-예시) / [ISMS-P 인증 자동화 확장 (진행 중)](#isms-p-인증-자동화-확장-진행-중) 참고.
 
 ## 실행 방법
 
@@ -39,16 +39,19 @@ ollama pull nomic-embed-text   # 임베딩 모델 (~274MB)
 - 구조화된 JSON 출력(00/step3, 07 evaluator 등)은 `qwen2.5:3b`에서 LangChain의 기본 `withStructuredOutput`(tool-calling/jsonSchema 그래머)이 신뢰할 수 없어서(모델이 이상한 tool-call 형태로 응답), `src/llm/provider.ts`의 `generateStructured()`가 provider별로 분기합니다: Ollama에서는 Ollama 자체 `format: "json"` 모드(자유형 JSON 강제) + 스키마의 `.describe()`로 만든 필드 힌트 + zod 검증으로 처리합니다. 실제 테스트로 정상 동작 확인함.
 - 메모리/디스크가 빠듯한 환경(예: 8GB RAM)에서는 `qwen2.5:3b`처럼 작은 모델을 권장합니다. `qwen2.5:7b` 이상은 다른 앱을 다 끄고 써야 할 정도로 무거울 수 있어요.
 
-## 사용 예시
+## 사용 예시 — ISMS-P 인증 준비 챗봇
 
-00~07 모듈은 모듈당 1페이지(카드형 목록 → 각 모듈 페이지)로 구성됩니다.
+`http://localhost:3000/isms-p/` — 기업이 보유한 정책/지침 문서를 등록하면서 문서 종류·관련 분야·연도를 메타데이터로 태깅하고, 이후 그 문서에 대해 질문하면 등록된 문서만 근거로 답변합니다.
 
 ![모듈 목록](docs/screenshots/01-index.png)
 
-**05. 메타데이터 필터 RAG** — PDF를 업로드하면서 분류/부서/연도/우선순위 등 메타데이터를 함께 태깅하고, 이후 질문 시 그 메타데이터로 검색 범위를 필터링합니다.
+**문서 등록 + 메타데이터 라벨링** — 업로드 시 "제N조" 형식 조문이 일정 개수 이상 감지되면 조 단위로 청킹하고(`chunk_strategy: article`), 아니면 일반 재귀 분할로 자동 폴백합니다.
 
-![PDF 업로드 + 메타데이터 태깅](docs/screenshots/03-module05-uploaded.png)
-![메타데이터 필터 기반 채팅 결과](docs/screenshots/04-module05-chat.png)
+![정책 문서 등록 + 메타데이터 라벨링](docs/screenshots/02-isms-p-register.png)
+
+**등록 문서 기반 채팅** — 아래 예시는 실제로 문서를 등록하고 질문한 결과입니다. 답변이 "제2조"를 정확히 인용하고, 출처에 어떤 청킹 전략(article)이 쓰였는지까지 표시됩니다.
+
+![등록 문서 기반 채팅 결과](docs/screenshots/03-isms-p-chat.png)
 
 ## 프로젝트 구조
 
@@ -63,11 +66,17 @@ src/
     ragChain.ts           # answerFromDocs — 검색 + LLM 응답 체인
   pdf/renderPage.ts       # PDF 페이지 → PNG 래스터화 (미리보기용)
   modules/00-07-*/         # 커리큘럼 각 모듈의 step별 로직 (라우트에서 호출)
+  modules/isms-p/
+    chunkPolicyDoc.ts       # 장-조-항 청킹 (조문 밀도 검사 후 폴백)
+    step1_ingest_company_doc.ts  # 문서 등록 + 메타데이터 태깅 + 해시 업서트
+    step2_chat.ts           # 메타데이터 필터 기반 채팅
   routes/00-07-*.ts        # 모듈별 Express 라우터
+  routes/isms-p.ts          # ISMS-P 챗봇 라우터
 
 public/
   index.html              # 모듈 목록 페이지
   00-07-*/                 # 모듈별 정적 HTML/JS 프론트엔드
+  isms-p/                  # ISMS-P 인증 준비 챗봇 프론트엔드
 
 scripts/                  # 반복 실행하는 1회성 파이프라인 스크립트 (npm run <name>으로 실행)
   parse-criteria.ts        # ISMS-P 인증기준 xlsx → data/isms-criteria.json 파싱
@@ -85,30 +94,17 @@ docs/
 samples/                  # 각 모듈 데모용 샘플 문서 (계약서/정책/매뉴얼/보고서 등)
 ```
 
-## 원래 Python 버전과의 대응 관계 (참고용)
-
-| Python (제거됨) | TypeScript |
-|---|---|
-| `ChatOpenAI` | `ChatGoogleGenerativeAI` 또는 `ChatOllama` (`LLM_PROVIDER`로 선택) |
-| `OpenAIEmbeddings` | `GoogleGenerativeAIEmbeddings` 또는 `OllamaEmbeddings` |
-| Streamlit UI | Express + 정적 HTML/JS (모듈당 1페이지, step별 섹션) |
-| `st.session_state` (대화 이력) | `express-session` (기본 MemoryStore) |
-| Chroma (`persist_directory`) | `HNSWLib` + JSON 사이드카 (`data/vectorstore/<module>/`), add/delete 시 인덱스 재구축 |
-| PyMuPDF 페이지 래스터화 | `mupdf`(Artifex 공식 WASM 바인딩, PyMuPDF와 동일 엔진) |
-| `unstructured` (pptx 등) | `officeparser` (텍스트만 추출하는 실용적 근사치) |
-| GPT Vision 기반 이미지 OCR | Gemini 자체 멀티모달 (별도 비전 모델 불필요) |
-
 ## ISMS-P 인증 자동화 확장 (진행 중)
 
 논문 ["RAG와 OCR 기술을 활용한 LLM 기반 정보보호 관리체계(ISMS) 인증관리 자동화 시스템"](docs/isms-p-automation-plan.md)을 참고해, 영세 기업이 외부 컨설팅 없이 ISMS-P 인증심사를 준비할 수 있도록 돕는 챗봇으로 확장 중입니다. 설계 배경과 단계별 계획은 [`docs/isms-p-automation-plan.md`](docs/isms-p-automation-plan.md)에 정리되어 있습니다.
 
-**현재까지 구현된 것** (`scripts/` 참고):
-- KISA 공개 "ISMS-P 인증기준 세부점검항목" 데이터를 파싱해 101개 인증기준 항목·328개 세부 확인사항을 구조화한 마스터 데이터(`data/isms-criteria.json`) 자동 생성
+**현재까지 구현된 것**:
+- **ISMS-P 인증 준비 챗봇** (`/isms-p/`, `src/modules/isms-p/`) — 기업 정책 문서 등록 + 메타데이터(문서 종류/관련 분야/연도) 라벨링, 조문("제N조") 밀도를 검사해 조 단위 청킹 또는 일반 재귀 분할로 자동 폴백, 메타데이터 필터 기반 채팅
+- KISA 공개 "ISMS-P 인증기준 세부점검항목" 데이터를 파싱해 101개 인증기준 항목·328개 세부 확인사항을 구조화한 마스터 데이터(`data/isms-criteria.json`) 자동 생성 (`scripts/parse-criteria.ts`)
 - 문서 적재 시 `source_file`/`file_hash` 메타데이터 태깅 → 파일 단위 신규/변경/중복 판별 후 변경분만 재색인하는 업서트 파이프라인
 - 로컬 LLM(Ollama) 임베딩 환경에서 대용량 문서(200페이지+) 색인 시 단일 배치 요청이 실패하는 문제를 배치 단위 임베딩으로 해결
-- `source_file` 메타데이터 기반 필터 벡터 검색 (`scripts/search-isms-p.ts`)
 
-**아직 구현되지 않은 것**: 인증기준 항목별 근거 문서 자동 매칭(2단계 재평가), 증적 자료 적정성 판정, GAP 분석 리포트 — 설계는 완료되었고 구현 예정입니다.
+**아직 구현되지 않은 것**: 인증기준 항목별 근거 문서 자동 매칭(2단계 재평가: 벡터 유사도 → LLM 적합도 재판정), 증적 자료 적정성 판정, GAP 분석 리포트 — 설계는 완료되었고 구현 예정입니다.
 
 ## 알아둘 점
 

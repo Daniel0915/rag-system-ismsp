@@ -24,3 +24,6 @@ data/*
 
 # Claude settings
 .claude/settings.local.json
+
+# Course slide deck (large, not relevant to the repo itself)
+presentation.pdf

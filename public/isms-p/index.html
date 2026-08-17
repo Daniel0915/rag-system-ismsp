@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>ISMS-P 인증 준비 챗봇</title>
+  <link rel="stylesheet" href="/shared.css" />
+</head>
+<body>
+  <header>
+    <h1>ISMS-P 인증 준비 챗봇</h1>
+    <a href="/">&larr; 전체 모듈</a>
+  </header>
+  <main>
+    <section class="step">
+      <h2>정책/지침 문서 등록 + 메타데이터 라벨링</h2>
+      <p class="muted">샘플: <code>data/isms-p</code>의 문서나 <code>samples/sample_policy_01.pdf</code> 등</p>
+      <input type="file" id="file-input" accept=".pdf,.docx,.txt,.md" />
+      <label>문서 종류</label>
+      <select id="meta-doc-type"></select>
+      <label>관련 분야 (인증기준 대분류)</label>
+      <select id="meta-domain"></select>
+      <label>연도</label>
+      <input type="text" id="meta-year" value="2026" />
+      <button id="upload-btn">등록</button>
+      <button id="delete-btn" style="background:#a33">전체 삭제</button>
+      <div class="result" id="upload-result"></div>
+    </section>
+
+    <section class="step">
+      <h2>등록 문서 기반 채팅</h2>
+      <label>문서 종류 필터</label>
+      <select id="filter-doc-type"><option value="">전체</option></select>
+      <label>분야 필터</label>
+      <select id="filter-domain"><option value="">전체</option></select>
+      <div class="chat-log" id="chat-log"></div>
+      <input type="text" id="chat-input" placeholder="등록한 정책 문서에 대해 질문하세요..." />
+      <button id="chat-send">전송</button>
+      <h3 class="muted">출처</h3>
+      <div id="sources"></div>
+    </section>
+  </main>
+  <script src="/isms-p/script.js"></script>
+</body>
+</html>

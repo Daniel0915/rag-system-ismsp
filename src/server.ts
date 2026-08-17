@@ -12,6 +12,7 @@ import module04Router from "./routes/04-multi-pdf-rag.js";
 import module05Router from "./routes/05-metadata-filtered-rag.js";
 import module06Router from "./routes/06-rag-multi-format.js";
 import module07Router from "./routes/07-langgraph-basics.js";
+import ismsPRouter from "./routes/isms-p.js";
 
 declare module "express-session" {
   interface SessionData {
@@ -46,6 +47,7 @@ app.use("/api/04-multi-pdf-rag", module04Router);
 app.use("/api/05-metadata-filtered-rag", module05Router);
 app.use("/api/06-rag-multi-format", module06Router);
 app.use("/api/07-langgraph-basics", module07Router);
+app.use("/api/isms-p", ismsPRouter);
 
 app.listen(env.port, () => {
   console.log(`RAG TS server running at http://localhost:${env.port}`);

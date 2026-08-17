@@ -8,9 +8,12 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start": "node dist/server.js",
+    "start": "node dist/src/server.js",
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "parse:criteria": "tsx scripts/parse-criteria.ts",
+    "ingest:isms-p": "tsx scripts/ingest-isms-p.ts",
+    "search:isms-p": "tsx scripts/search-isms-p.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.3.30",
@@ -37,6 +40,7 @@
     "@types/multer": "^1.4.12",
     "@types/node": "^20.17.9",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "xlsx": "^0.18.5"
   }
 }

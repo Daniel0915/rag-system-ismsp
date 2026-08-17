@@ -19,7 +19,8 @@ Thumbs.db
 .env.local
 
 # Runtime data (vector store, PDF page cache, uploads)
-data/
+data/*
+!data/isms-criteria.json
 
 # Claude settings
 .claude/settings.local.json

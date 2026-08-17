@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>01. LangChain 기초</title>
+  <link rel="stylesheet" href="/shared.css" />
+</head>
+<body>
+  <header>
+    <h1>01. LangChain 기초</h1>
+    <a href="/">&larr; 전체 모듈</a>
+  </header>
+  <main>
+    <section class="step">
+      <h2>Step 1 — ChatModel 기본 호출</h2>
+      <label>질문</label>
+      <input type="text" id="s1-question" value="LangChain이 뭔가요?" />
+      <button id="s1-btn">질문하기</button>
+      <div class="result" id="s1-result"></div>
+    </section>
+
+    <section class="step">
+      <h2>Step 2 — 프롬프트 템플릿 + LCEL 체인</h2>
+      <label>요약할 텍스트</label>
+      <textarea id="s2-text">LangChain은 LLM 애플리케이션 개발을 위한 프레임워크로, 프롬프트 관리, 체인 구성, 검색 증강 생성(RAG) 등을 지원합니다. 다양한 LLM 제공자와 벡터 스토어를 추상화된 인터페이스로 다룰 수 있게 해줍니다.</textarea>
+      <label>요약 줄 수</label>
+      <input type="number" id="s2-length" value="2" min="1" max="10" />
+      <button id="s2-btn">요약하기</button>
+      <div class="result" id="s2-result"></div>
+    </section>
+
+    <section class="step">
+      <h2>Step 3 — 번역 / 분류 체인</h2>
+      <label>텍스트</label>
+      <textarea id="s3-text">오늘 주식 시장이 큰 폭으로 상승했습니다.</textarea>
+      <label>번역 대상 언어</label>
+      <select id="s3-lang"></select>
+      <button id="s3-translate-btn">번역하기</button>
+      <button id="s3-classify-btn">분류하기</button>
+      <div class="result" id="s3-result"></div>
+    </section>
+  </main>
+  <script src="/01-langchain-basics/script.js"></script>
+</body>
+</html>

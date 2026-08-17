@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>03. 단일 PDF RAG</title>
+  <link rel="stylesheet" href="/shared.css" />
+</head>
+<body>
+  <header>
+    <h1>03. 단일 PDF RAG</h1>
+    <a href="/">&larr; 전체 모듈</a>
+  </header>
+  <main>
+    <section class="step">
+      <h2>PDF 업로드 (로드 → 청킹 → 임베딩 → 저장)</h2>
+      <p class="muted">샘플: <code>samples/faq.pdf</code></p>
+      <input type="file" id="file-input" accept=".pdf" />
+      <button id="upload-btn">업로드 및 저장</button>
+      <button id="delete-btn" style="background:#a33">전체 삭제</button>
+      <div class="result" id="upload-result"></div>
+    </section>
+
+    <section class="step">
+      <h2>임베딩 유사도 데모</h2>
+      <label>문장 A</label>
+      <input type="text" id="sim-a" value="오늘 날씨가 좋네요" />
+      <label>문장 B</label>
+      <input type="text" id="sim-b" value="오늘 날씨가 화창합니다" />
+      <button id="sim-btn">유사도 계산</button>
+      <div class="result" id="sim-result"></div>
+    </section>
+
+    <section class="step">
+      <h2>문서 기반 채팅</h2>
+      <div class="chat-log" id="chat-log"></div>
+      <input type="text" id="chat-input" placeholder="문서에 대해 질문하세요..." />
+      <button id="chat-send">전송</button>
+      <div class="two-col">
+        <div>
+          <h3 class="muted">출처</h3>
+          <div id="sources"></div>
+        </div>
+        <div class="pdf-viewer">
+          <h3 class="muted">페이지 미리보기</h3>
+          <img id="page-image" style="display:none" />
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <h2>청크 미리보기</h2>
+      <button id="load-chunks-btn">청크 불러오기</button>
+      <div class="result" id="chunks-result"></div>
+    </section>
+  </main>
+  <script src="/03-single-pdf-rag/script.js"></script>
+</body>
+</html>

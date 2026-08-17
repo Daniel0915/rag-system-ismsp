@@ -56,6 +56,9 @@ node_modules/
 chroma_db/
 faiss_index/
 
+# TypeScript version runtime data
+ts-version/data/
+
 # Temporary files
 PDF_임시폴더/
 PDF_이미지/

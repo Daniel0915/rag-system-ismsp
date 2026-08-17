@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>00. OpenAI/Gemini 기초</title>
+  <link rel="stylesheet" href="/shared.css" />
+</head>
+<body>
+  <header>
+    <h1>00. OpenAI/Gemini 기초</h1>
+    <a href="/">&larr; 전체 모듈</a>
+  </header>
+  <main>
+    <section class="step">
+      <h2>Step 1 — 첫 API 호출</h2>
+      <label>질문</label>
+      <input type="text" id="s1-question" placeholder="질문을 입력하세요" value="안녕하세요, 자기소개 해주세요." />
+      <label>Temperature (0~1)</label>
+      <input type="number" id="s1-temp" min="0" max="1" step="0.1" value="0.7" />
+      <button id="s1-btn">질문하기</button>
+      <div class="result" id="s1-result"></div>
+    </section>
+
+    <section class="step">
+      <h2>Step 2 — 역할(시스템 프롬프트) 바꾸기</h2>
+      <label>역할 선택</label>
+      <select id="s2-role"></select>
+      <div id="s2-custom-wrap" style="display:none">
+        <label>직접 입력할 시스템 프롬프트</label>
+        <textarea id="s2-custom"></textarea>
+      </div>
+      <label>입력</label>
+      <textarea id="s2-input">이 함수 좀 리뷰해줘: function add(a,b){return a+b}</textarea>
+      <button id="s2-btn">실행</button>
+      <div class="result" id="s2-result"></div>
+    </section>
+
+    <section class="step">
+      <h2>Step 3 — 구조화된 JSON 출력</h2>
+      <label>분석할 텍스트</label>
+      <textarea id="s3-input">이 제품 정말 좋아요! 배송도 빠르고 품질도 만족스럽습니다.</textarea>
+      <button id="s3-btn">분석하기</button>
+      <div class="result" id="s3-result"></div>
+    </section>
+  </main>
+  <script src="/00-openai-basics/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>05. 메타데이터 필터 RAG</title>
+  <link rel="stylesheet" href="/shared.css" />
+</head>
+<body>
+  <header>
+    <h1>05. 메타데이터 필터 RAG</h1>
+    <a href="/">&larr; 전체 모듈</a>
+  </header>
+  <main>
+    <section class="step">
+      <h2>PDF 업로드 + 메타데이터 태깅</h2>
+      <p class="muted">샘플: <code>samples/sample_contract_01.pdf</code>, <code>sample_policy_01.pdf</code> 등</p>
+      <input type="file" id="file-input" accept=".pdf" />
+      <label>분류</label>
+      <select id="meta-category"></select>
+      <label>부서</label>
+      <select id="meta-department"></select>
+      <label>연도</label>
+      <input type="text" id="meta-year" value="2024" />
+      <label>언어</label>
+      <input type="text" id="meta-language" value="한국어" />
+      <label>우선순위</label>
+      <select id="meta-priority"></select>
+      <button id="upload-btn">저장</button>
+      <button id="delete-btn" style="background:#a33">전체 삭제</button>
+      <div class="result" id="upload-result"></div>
+    </section>
+
+    <section class="step">
+      <h2>필터 기반 채팅</h2>
+      <label>분류 필터</label>
+      <select id="filter-category"><option value="">전체</option></select>
+      <label>부서 필터</label>
+      <select id="filter-department"><option value="">전체</option></select>
+      <div class="chat-log" id="chat-log"></div>
+      <input type="text" id="chat-input" placeholder="문서에 대해 질문하세요..." />
+      <button id="chat-send">전송</button>
+      <div class="two-col">
+        <div>
+          <h3 class="muted">출처</h3>
+          <div id="sources"></div>
+        </div>
+        <div class="pdf-viewer">
+          <h3 class="muted">페이지 미리보기</h3>
+          <img id="page-image" style="display:none" />
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="/05-metadata-filtered-rag/script.js"></script>
+</body>
+</html>

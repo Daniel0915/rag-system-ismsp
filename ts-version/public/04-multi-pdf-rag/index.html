@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>04. 멀티 PDF RAG</title>
+  <link rel="stylesheet" href="/shared.css" />
+</head>
+<body>
+  <header>
+    <h1>04. 멀티 PDF RAG</h1>
+    <a href="/">&larr; 전체 모듈</a>
+  </header>
+  <main>
+    <section class="step">
+      <h2>여러 PDF 업로드 (해시 기반 신규/변경/스킵)</h2>
+      <p class="muted">샘플: <code>samples/sample_manual_01.pdf</code>, <code>sample_report_01.pdf</code> 등</p>
+      <input type="file" id="file-input" accept=".pdf" multiple />
+      <button id="upload-btn">업로드 및 동기화</button>
+      <div class="result" id="upload-result"></div>
+    </section>
+
+    <section class="step">
+      <h2>문서 관리</h2>
+      <button id="refresh-files-btn">문서 목록 새로고침</button>
+      <button id="delete-all-btn" style="background:#a33">전체 삭제</button>
+      <div id="file-list"></div>
+    </section>
+
+    <section class="step">
+      <h2>문서 기반 채팅</h2>
+      <div class="chat-log" id="chat-log"></div>
+      <input type="text" id="chat-input" placeholder="문서에 대해 질문하세요..." />
+      <button id="chat-send">전송</button>
+      <div class="two-col">
+        <div>
+          <h3 class="muted">출처</h3>
+          <div id="sources"></div>
+        </div>
+        <div class="pdf-viewer">
+          <h3 class="muted">페이지 미리보기</h3>
+          <img id="page-image" style="display:none" />
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="/04-multi-pdf-rag/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>02. 챗봇</title>
+  <link rel="stylesheet" href="/shared.css" />
+</head>
+<body>
+  <header>
+    <h1>02. 챗봇</h1>
+    <a href="/">&larr; 전체 모듈</a>
+  </header>
+  <main>
+    <section class="step">
+      <h2>Step 1 — 위젯 데모</h2>
+      <label>이름을 입력하세요</label>
+      <input type="text" id="s1-name" value="홍길동" />
+      <label>주제 선택</label>
+      <select id="s1-topic">
+        <option>파이썬</option>
+        <option>자바스크립트</option>
+        <option>AI</option>
+        <option>데이터분석</option>
+      </select>
+      <label>난이도</label>
+      <select id="s1-level">
+        <option>초급</option>
+        <option>중급</option>
+        <option>고급</option>
+      </select>
+      <button id="s1-btn">설명 요청</button>
+      <div class="result" id="s1-result"></div>
+    </section>
+
+    <section class="step">
+      <h2>Step 2 — 채팅 UI (대화 이력 유지)</h2>
+      <div class="chat-log" id="s2-log"></div>
+      <input type="text" id="s2-input" placeholder="메시지를 입력하세요..." />
+      <button id="s2-send">전송</button>
+      <button id="s2-reset" style="background:#555">대화 초기화</button>
+    </section>
+
+    <section class="step">
+      <h2>Step 3 — 페르소나 챗봇</h2>
+      <label>페르소나 선택</label>
+      <select id="s3-persona"></select>
+      <div id="s3-custom-wrap" style="display:none">
+        <label>시스템 프롬프트 직접 작성</label>
+        <textarea id="s3-custom-prompt"></textarea>
+        <button id="s3-apply-custom">적용</button>
+      </div>
+      <div class="chat-log" id="s3-log"></div>
+      <input type="text" id="s3-input" placeholder="메시지를 입력하세요..." />
+      <button id="s3-send">전송</button>
+    </section>
+  </main>
+  <script src="/02-chatbot/script.js"></script>
+</body>
+</html>

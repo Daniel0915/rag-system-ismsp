@@ -43,15 +43,15 @@ ollama pull nomic-embed-text   # 임베딩 모델 (~274MB)
 
 `http://localhost:3000/isms-p/` — 기업이 보유한 정책/지침 문서를 등록하면서 문서 종류·관련 분야·연도를 메타데이터로 태깅하고, 이후 그 문서에 대해 질문하면 등록된 문서만 근거로 답변합니다.
 
-![모듈 목록](docs/screenshots/01-index.png)
+![모듈 목록](docs/screenshots/v2/01-index.png)
 
 **문서 등록 + 메타데이터 라벨링** — 업로드 시 "제N조" 형식 조문이 일정 개수 이상 감지되면 조 단위로 청킹하고(`chunk_strategy: article`), 아니면 일반 재귀 분할로 자동 폴백합니다.
 
-![정책 문서 등록 + 메타데이터 라벨링](docs/screenshots/02-isms-p-register.png)
+![정책 문서 등록 + 메타데이터 라벨링](docs/screenshots/v2/02-isms-p-register.png)
 
 **등록 문서 기반 채팅** — 아래 예시는 실제로 문서를 등록하고 질문한 결과입니다. 답변이 "제2조"를 정확히 인용하고, 출처에 어떤 청킹 전략(article)이 쓰였는지까지 표시됩니다.
 
-![등록 문서 기반 채팅 결과](docs/screenshots/03-isms-p-chat.png)
+![등록 문서 기반 채팅 결과](docs/screenshots/v2/03-isms-p-chat.png)
 
 ## 프로젝트 구조
 
